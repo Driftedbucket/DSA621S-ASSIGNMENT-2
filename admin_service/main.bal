@@ -217,6 +217,88 @@ service /admin on adminListener {
     }
     
 
-
+  // Create trip
+    resource function post trips(http:Request req) returns http:Response|error {
+        json jsonPayload = check req.getJsonPayload();
+        TripRequest body = check jsonPayload.cloneWithType(TripRequest);
+        
+        string status = body.status ?: "scheduled";
+        
+        sql:ParameterizedQuery q = `
+            INSERT INTO Trip (routeID, departureTime, arrivalTime, status)
+            VALUES (${body.routeID}, ${body.departureTime}, ${body.arrivalTime}, ${status})
+        `;
+        
+        sql:ExecutionResult result = check db->execute(q);
+        
+        http:Response response = new;
+        if result.affectedRowCount > 0 {
+            int|string? tripID = result.lastInsertId;
+            json payload = {
+                message: "Trip created successfully",
+                tripID: tripID is int ? tripID : 0
+            };
+            check response.setJsonPayload(payload);
+            response.statusCode = 201;
+        } else {
+            json payload = { message: "Failed to create trip" };
+            check response.setJsonPayload(payload);
+            response.statusCode = 500;
+        }
+        
+        return response;
+    }
+    
+    // Get all trips
+    resource function get trips() returns http:Response|error {
+        sql:ParameterizedQuery q = `
+            SELECT t.*, r.routeName 
+            FROM Trip t 
+            JOIN Route r ON t.routeID = r.routeID
+        `;
+        
+        stream<TripDetail, sql:Error?> resultStream = check db->query(q);
+        TripDetail[] trips = check from TripDetail trip in resultStream select trip;
+        check resultStream.close();
+        
+        http:Response response = new;
+        json payload = {
+            message: "Trips retrieved successfully",
+            trips: <json>trips
+        };
+        check response.setJsonPayload(payload);
+        response.statusCode = 200;
+        
+        return response;
+    }
+    
+    // Update trip status
+    resource function put trips/[int tripID](http:Request req) returns http:Response|error {
+        json jsonPayload = check req.getJsonPayload();
+        
+        
+        TripStatusUpdate body = check jsonPayload.cloneWithType(TripStatusUpdate);
+        
+        sql:ParameterizedQuery q = `
+            UPDATE Trip 
+            SET status = ${body.status}
+            WHERE tripID = ${tripID}
+        `;
+        
+        sql:ExecutionResult result = check db->execute(q);
+        
+        http:Response response = new;
+        if result.affectedRowCount > 0 {
+            json payload = { message: "Trip status updated successfully" };
+            check response.setJsonPayload(payload);
+            response.statusCode = 200;
+        } else {
+            json payload = { message: "Trip not found" };
+            check response.setJsonPayload(payload);
+            response.statusCode = 404;
+        }
+        
+        return response;
+    }
 
 
