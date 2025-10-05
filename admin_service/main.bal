@@ -297,6 +297,82 @@ service /admin on adminListener {
             check response.setJsonPayload(payload);
             response.statusCode = 404;
         }
+ // Publish service disruption
+    resource function post disruptions(http:Request req) returns http:Response|error {
+        json jsonPayload = check req.getJsonPayload();
+        DisruptionRequest body = check jsonPayload.cloneWithType(DisruptionRequest);
+        
+        // Publish to Kafka
+        json event = {
+            route_id: body.route_id,
+            description: body.description,
+            start_time: body.start_time,
+            end_time: body.end_time
+        };
+        
+        byte[] eventBytes = event.toJsonString().toBytes();
+        var sendResult = scheduleProducer->send({
+            topic: "schedule.updates",
+            value: eventBytes
+        });
+        
+        http:Response response = new;
+        if sendResult is error {
+            io:println("Failed to publish disruption: ", sendResult.message());
+            check response.setJsonPayload({
+                message: "Failed to publish disruption"
+            });
+            response.statusCode = 500;
+        } else {
+            io:println("Disruption published for route: ", body.route_id);
+            check response.setJsonPayload({
+                message: "Disruption published successfully"
+            });
+            response.statusCode = 200;
+        }
+        
+        return response;
+    }
+    
+    // Get ticket sales report
+    resource function get reports/ticketsales() returns http:Response|error {
+        sql:ParameterizedQuery q = `
+            SELECT 
+                r.routeID,
+                r.routeName,
+                COUNT(t.ticketID) as totalTickets,
+                SUM(CASE WHEN t.status = 'created' THEN 1 ELSE 0 END) as createdTickets,
+                SUM(CASE WHEN t.status = 'paid' THEN 1 ELSE 0 END) as paidTickets,
+                SUM(CASE WHEN t.status = 'validated' THEN 1 ELSE 0 END) as validatedTickets,
+                SUM(CASE WHEN t.status = 'expired' THEN 1 ELSE 0 END) as expiredTickets
+            FROM Route r
+            LEFT JOIN Trip tr ON r.routeID = tr.routeID
+            LEFT JOIN Ticket t ON tr.tripID = t.tripID
+            GROUP BY r.routeID, r.routeName
+        `;
+        
+        stream<TicketSalesReport, sql:Error?> resultStream = check db->query(q);
+        TicketSalesReport[] reports = check from TicketSalesReport report in resultStream 
+            select report;
+        check resultStream.close();
+        
+        http:Response response = new;
+        json payload = {
+            message: "Ticket sales report generated",
+            reports: <json>reports
+        };
+        check response.setJsonPayload(payload);
+        response.statusCode = 200;
+        
+        return response;
+    }
+    
+    // Health check
+    resource function get health() returns json {
+        return { status: "Admin Service running" };
+    }
+}
+
         
         return response;
     }
