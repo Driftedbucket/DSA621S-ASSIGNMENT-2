@@ -60,7 +60,178 @@ type NotificationRequest record {
 type TicketOwner record { 
     int passengerID; 
 };
+// Init: spawn two workers for consumers
+function init() returns error? {
+    io:println("🔔 Notification Service starting...");
+    io:println("Listening for schedule updates and ticket confirmations");
 
+    // worker for schedule updates
+    worker ScheduleProcessor {
+        error? res = consumeScheduleUpdates();
+        if res is error {
+            io:println("❌ Schedule consumer error: ", res.message());
+        }
+    }
+
+    // worker for ticket confirmations
+    worker TicketProcessor {
+        error? res = consumeTicketConfirmations();
+        if res is error {
+            io:println("❌ Ticket consumer error: ", res.message());
+        }
+    }
+}
+
+// Consume schedule updates from Kafka
+function consumeScheduleUpdates() returns error? {
+    while true {
+        // explicit typed poll (avoids inference issues)
+        k:BytesConsumerRecord[]|k:Error records = scheduleConsumer->poll(1000.0);
+        if records is k:Error {
+            io:println("⚠️ Kafka poll error (schedule): ", records.message());
+            continue;
+        }
+
+        if records.length() == 0 {
+            continue;
+        }
+
+        foreach k:BytesConsumerRecord rec in records {
+            // decode bytes -> string
+            byte[] val = rec.value;
+            string payloadStr = check string:fromBytes(val);
+
+            // ---------------------------
+            // <-- use string.fromJsonString() here
+            // ---------------------------
+            var jsonParseRes = payloadStr.fromJsonString();
+            if jsonParseRes is error {
+                io:println("⚠️ Failed to parse schedule JSON: ", jsonParseRes.message());
+                continue;
+            }
+            json payloadJson = jsonParseRes;
+            // ---------------------------
+
+            // ensure it's a map so we can pull fields
+            if !(payloadJson is map<json>) {
+                io:println("⚠️ Unexpected schedule payload shape, skipping");
+                continue;
+            }
+            map<json> m = payloadJson;
+
+            // Extract route_id (optional)
+            int routeId = 0;
+            if m["route_id"] is int {
+                routeId = <int> m["route_id"];
+            } else if m["route_id"] is string {
+                var conv = int:fromString(<string> m["route_id"]);
+                if conv is int {
+                    routeId = conv;
+                } else {
+                    // leave as 0 (no route filter)
+                }
+            }
+
+            string description = "Route schedule has been updated";
+            if m["description"] is string {
+                description = <string> m["description"];
+            }
+
+            io:println("📣 Received schedule update for route: ", routeId, " - ", description);
+
+            // find affected passengers (distinct)
+            sql:ParameterizedQuery passengerQuery = `
+                SELECT DISTINCT p.passengerID
+                FROM Passenger p
+                JOIN Ticket t ON p.passengerID = t.passengerID
+                JOIN Trip tr ON t.tripID = tr.tripID
+                WHERE tr.routeID = ${routeId}
+            `;
+
+            stream<record { int passengerID; }, sql:Error?> passengerStream = check db->query(passengerQuery);
+
+            check from var passenger in passengerStream
+                do {
+                    int pid = passenger.passengerID;
+                    string message = "Schedule Update: " + description;
+                    error? notifyErr = createNotification(pid, message);
+                    if notifyErr is error {
+                        io:println("⚠️ Failed to create notification for passenger ", pid, ": ", notifyErr.message());
+                    }
+                };
+            check passengerStream.close();
+        }
+    }
+}
+
+// Consume ticket.confirmed events from Kafka
+function consumeTicketConfirmations() returns error? {
+    while true {
+        k:BytesConsumerRecord[]|k:Error records = ticketConsumer->poll(1000.0);
+        if records is k:Error {
+            io:println("⚠️ Kafka poll error (tickets): ", records.message());
+            continue;
+        }
+
+        if records.length() == 0 {
+            continue;
+        }
+
+        foreach k:BytesConsumerRecord rec in records {
+        byte[] val = rec.value;
+        string payloadStr = check string:fromBytes(val);
+
+        // ---------- Replace json:fromString(...) with string.fromJsonString() ----------
+        var jsonParseRes = payloadStr.fromJsonString();
+        if jsonParseRes is error {
+            io:println("⚠️ Failed to parse ticket JSON: ", jsonParseRes.message());
+            continue;
+        }
+        json payloadJson = jsonParseRes;
+        // ---------------------------------------------------------------------------
+
+        if !(payloadJson is map<json>) {
+            io:println("⚠️ Unexpected ticket payload shape, skipping");
+            continue;
+        }
+        map<json> m = payloadJson;
+
+            // Extract ticketID safely
+            int ticketID;
+            if m["ticketID"] is int {
+                ticketID = <int> m["ticketID"];
+            } else if m["ticketID"] is string {
+                var conv = int:fromString(<string> m["ticketID"]);
+                if conv is int {
+                    ticketID = conv;
+                } else {
+                    io:println("⚠️ Invalid ticketID in ticket.confirmed message: ", m["ticketID"].toString());
+                    continue;
+                }
+            } else {
+                io:println("⚠️ Missing ticketID in ticket.confirmed message");
+                continue;
+            }
+
+            io:println("✅ Received ticket confirmation for ticket: ", ticketID);
+
+            // Lookup passenger for the ticket
+            TicketOwner? owner = check db->queryRow(`
+                SELECT passengerID FROM Ticket WHERE ticketID = ${ticketID}
+            `, TicketOwner);
+
+            if owner is TicketOwner {
+                string message = "Your ticket #" + ticketID.toString() + " has been confirmed and paid successfully!";
+                error? nerr = createNotification(owner.passengerID, message);
+                if nerr is error {
+                    io:println("⚠️ Failed to create notification: ", nerr.message());
+                }
+            } else {
+                io:println("⚠️ No owner found for ticket ", ticketID);
+            }
+        }
+    }
+}
 // Create notification helper
 function createNotification(int passengerID, string message) returns error? {
     sql:ParameterizedQuery q = `
