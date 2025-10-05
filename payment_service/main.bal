@@ -47,6 +47,66 @@ type PaymentRecord record {
     string dateCreated;
 };
 
+function init() returns error? {
+    io:println("Payment Service starting...");
+    io:println("Listening for ticket requests on Kafka topic: ticket.requests");
+
+    // Start consuming ticket requests in a worker
+    worker TicketProcessor {
+        error? result = consumeTicketRequests();
+        if result is error {
+            io:println("Error consuming ticket requests: ", result.message());
+        }
+    }
+}
+
+// Function to consume ticket requests and process payments
+function consumeTicketRequests() returns error? {
+    while true {
+        // Poll Kafka
+        k:BytesConsumerRecord[]|k:Error pollResult = ticketConsumer->poll(1000.0);
+        
+        if pollResult is k:Error {
+            io:println("Kafka poll error: ", pollResult.message());
+            continue;
+        }
+
+        if pollResult.length() == 0 {
+            continue;
+        }
+
+        foreach k:BytesConsumerRecord rec in pollResult {
+            // Extract value bytes
+            byte[] val = rec.value;
+            string payloadStr = check string:fromBytes(val);
+
+            // Parse JSON
+            json|error jsonResult = payloadStr.fromJsonString();
+            if jsonResult is error {
+                io:println("Failed to parse JSON: ", jsonResult.message());
+                continue;
+            }
+            json payloadJson = jsonResult;
+
+            // Convert JSON to typed TicketRequest record
+            TicketRequest|error ticketResult = payloadJson.cloneWithType(TicketRequest);
+            if ticketResult is error {
+                io:println("Failed to convert to TicketRequest: ", ticketResult.message());
+                continue;
+            }
+            TicketRequest ticketReq = ticketResult;
+
+            io:println("Received ticket request for ticket: ", ticketReq.ticketID);
+
+            // Process payment
+            error? paymentResult = processPayment(ticketReq);
+            if paymentResult is error {
+                io:println("Payment processing failed: ", paymentResult.message());
+            }
+        }
+    }
+}
+
 function processPayment(TicketRequest ticketReq) returns error? {
     // Create payment record in database
     sql:ParameterizedQuery insertQuery = `
