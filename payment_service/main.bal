@@ -116,3 +116,39 @@ function getCurrentTimestamp() returns string {
     time:Utc currentTime = time:utcNow();
     return time:utcToString(currentTime);
 }
+
+service /payment on paymentListener {
+    
+    // Health check
+    resource function get health() returns json {
+        return { status: "Payment Service running" };
+    }
+    
+    // Get payment status for a ticket
+    resource function get status/[int ticketID]() returns http:Response|error {
+        sql:ParameterizedQuery q = `
+            SELECT paymentID, ticketID, status, dateCreated
+            FROM Payment
+            WHERE ticketID = ${ticketID}
+            ORDER BY dateCreated DESC
+            LIMIT 1
+        `;
+        
+        PaymentRecord|sql:Error result = db->queryRow(q);
+        
+        http:Response response = new;
+        if result is PaymentRecord {
+            json payload = {
+                message: "Payment status retrieved",
+                payment: result.toJson()
+            };
+            check response.setJsonPayload(payload);
+            response.statusCode = 200;
+        } else {
+            json payload = { message: "No payment found for this ticket" };
+            check response.setJsonPayload(payload);
+            response.statusCode = 404;
+        }
+        
+        return response;
+    }
