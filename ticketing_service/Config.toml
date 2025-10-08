@@ -1,0 +1,5 @@
+HOST="mysql"
+USER="root"
+PASSWORD="muddysituation"
+PORT=3306
+DATABASE="ticketingdb"
