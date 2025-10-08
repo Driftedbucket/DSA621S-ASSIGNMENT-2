@@ -19,7 +19,7 @@ observabilityIncluded = true
 #version = "1.2.2"
 
 [[platform.java17.dependency]]
-path = "../libs/mysql-connector-j-9.4.0.jar"
+path = "libs/mysql-connector-j-9.4.0.jar"
 groupId = "mysql"
 artifactId = "mysql-connector-java"
 version = "9.4.0"

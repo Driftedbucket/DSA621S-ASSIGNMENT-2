@@ -4,13 +4,13 @@ import ballerina/io;
 import ballerinax/mysql;
 import ballerinax/kafka as k;
 
-configurable string HOST = "localhost";
+configurable string HOST = ?;
 configurable string DATABASE = "ticketingdb";
 configurable string USER = "root";
 configurable string PASSWORD = "muddysituation";
 configurable int PORT = 3306;
 
-configurable string KAFKA_BOOTSTRAP = "localhost:9092";
+configurable string KAFKA_BOOTSTRAP = ?;
 
 final mysql:Client db = check new(HOST, DATABASE, USER, PASSWORD, PORT);
 final k:Producer ticketProducer = check new(KAFKA_BOOTSTRAP);
@@ -38,7 +38,7 @@ type PaymentEvent record {
     decimal? amount;
     string? paymentMethod;
 };
-/ Initialize Kafka consumer listener
+// Initialize Kafka consumer listener
 function init() returns error? {
     io:println("🎫 Ticketing Service starting...");
     io:println("📡 Listening for payment events on Kafka topic: payments.processed");

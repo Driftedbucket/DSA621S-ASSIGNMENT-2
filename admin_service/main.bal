@@ -4,13 +4,13 @@ import ballerina/io;
 import ballerinax/mysql;
 import ballerinax/kafka as k;
 
-configurable string HOST = "localhost";
+configurable string HOST = ?;
 configurable string DATABASE = "ticketingdb";
 configurable string USER = "root";
 configurable string PASSWORD = "muddysituation";
 configurable int PORT = 3306;
 
-configurable string KAFKA_BOOTSTRAP = "localhost:9092";
+configurable string KAFKA_BOOTSTRAP = ?;
 
 final mysql:Client db = check new(HOST, DATABASE, USER, PASSWORD, PORT);
 final k:Producer scheduleProducer = check new(KAFKA_BOOTSTRAP);
@@ -297,7 +297,11 @@ service /admin on adminListener {
             check response.setJsonPayload(payload);
             response.statusCode = 404;
         }
- // Publish service disruption
+
+        return response;
+    }
+
+    // Publish service disruption
     resource function post disruptions(http:Request req) returns http:Response|error {
         json jsonPayload = check req.getJsonPayload();
         DisruptionRequest body = check jsonPayload.cloneWithType(DisruptionRequest);
@@ -372,9 +376,5 @@ service /admin on adminListener {
         return { status: "Admin Service running" };
     }
 }
-
-        
-        return response;
-    }
 
 

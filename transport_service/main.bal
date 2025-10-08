@@ -6,11 +6,11 @@ import ballerinax/kafka as k;
 
 configurable string USER = "root";
 configurable string PASSWORD = "muddysituation";
-configurable string HOST = "localhost";
+configurable string HOST = ?;
 configurable int PORT = 3306;
 configurable string DATABASE = "ticketingdb";
 
-configurable string KAFKA_BOOTSTRAP = "localhost:9092";
+configurable string KAFKA_BOOTSTRAP = ?;
 
 final k:Producer scheduleProducer = check new(KAFKA_BOOTSTRAP);
 

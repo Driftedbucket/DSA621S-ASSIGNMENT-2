@@ -4,16 +4,14 @@ import ballerina/io;
 import ballerinax/mysql;
 import ballerinax/kafka as k;
 
-
-
 // Config
-configurable string HOST = "localhost";
+configurable string HOST = ?;
 configurable string DATABASE = "ticketingdb";
 configurable string USER = "root";
 configurable string PASSWORD = "muddysituation";
 configurable int PORT = 3306;
 
-configurable string KAFKA_BOOTSTRAP = "localhost:9092";
+configurable string KAFKA_BOOTSTRAP = ?;
 
 // DB client
 final mysql:Client db = check new(HOST, DATABASE, USER, PASSWORD, PORT);

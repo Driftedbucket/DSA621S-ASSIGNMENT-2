@@ -5,13 +5,13 @@ import ballerinax/mysql;
 import ballerinax/kafka as k;
 import ballerina/time;
 
-configurable string HOST = "localhost";
+configurable string HOST = ?;
 configurable string DATABASE = "ticketingdb";
 configurable string USER = "root";
 configurable string PASSWORD = "muddysituation";
 configurable int PORT = 3306;
 
-configurable string KAFKA_BOOTSTRAP = "localhost:9092";
+configurable string KAFKA_BOOTSTRAP = ?;
 
 final mysql:Client db = check new(HOST, DATABASE, USER, PASSWORD, PORT);
 
@@ -44,7 +44,7 @@ type PaymentRecord record {
     int? paymentID;
     int ticketID;
     string status;
-    string dateCreated;
+    string dateCreated;
 };
 
 function init() returns error? {
@@ -103,8 +103,8 @@ function consumeTicketRequests() returns error? {
             if paymentResult is error {
                 io:println("Payment processing failed: ", paymentResult.message());
             }
-        }
-    }
+     }
+  }
 }
 
 function processPayment(TicketRequest ticketReq) returns error? {
@@ -210,5 +210,6 @@ service /payment on paymentListener {
             response.statusCode = 404;
         }
         
-        return response;
-    }
+        return response;
+   }
+}
