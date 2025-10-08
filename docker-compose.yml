@@ -1,4 +1,7 @@
-version: '3.8'
+# docker-compose.yml
+# ✅ Uses project root (.) as build context for all services
+# ✅ Fixes "../libs not found" issue
+# ✅ Keeps MySQL + Kafka health checks and dependencies
 
 services:
   zookeeper:
@@ -58,7 +61,9 @@ services:
       retries: 5
 
   passenger_service:
-    build: ./passenger_service
+    build:
+      context: .
+      dockerfile: passenger_service/Dockerfile
     container_name: passenger_service
     ports:
       - "8081:8081"
@@ -76,7 +81,9 @@ services:
     restart: on-failure
 
   transport_service:
-    build: ./transport_service
+    build:
+      context: .
+      dockerfile: transport_service/Dockerfile
     container_name: transport_service
     ports:
       - "8082:8082"
@@ -97,7 +104,9 @@ services:
     restart: on-failure
 
   ticketing_service:
-    build: ./ticketing_service
+    build:
+      context: .
+      dockerfile: ticketing_service/Dockerfile
     container_name: ticketing_service
     ports:
       - "8083:8083"
@@ -118,7 +127,9 @@ services:
     restart: on-failure
 
   payment_service:
-    build: ./payment_service
+    build:
+      context: .
+      dockerfile: payment_service/Dockerfile
     container_name: payment_service
     ports:
       - "8084:8084"
@@ -139,7 +150,9 @@ services:
     restart: on-failure
 
   notification_service:
-    build: ./notification_service
+    build:
+      context: .
+      dockerfile: notification_service/Dockerfile
     container_name: notification_service
     ports:
       - "8085:8085"
@@ -160,7 +173,9 @@ services:
     restart: on-failure
 
   admin_service:
-    build: ./admin_service
+    build:
+      context: .
+      dockerfile: admin_service/Dockerfile
     container_name: admin_service
     ports:
       - "8086:8086"
@@ -186,3 +201,4 @@ volumes:
 networks:
   ticketing-network:
     driver: bridge
+
