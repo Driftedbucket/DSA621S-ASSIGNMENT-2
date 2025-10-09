@@ -22,7 +22,6 @@ final mysql:Client db = check new(
     database = DATABASE
 );
 
-// Data types
 type Route record {
     int? routeID;
     string routeName;
@@ -56,12 +55,10 @@ type ScheduleUpdateRequest record {
     string? end_time;
 };
 
-// HTTP Listener
 listener http:Listener transportListener = new(8082);
 
 service /transport on transportListener {
 
-    // Add a new route
     resource function post addRoute(http:Request req) returns http:Response|error {
         //RouteRequest body = check req.getjsonPayload(); 
         json jsonPayload = check req.getJsonPayload();
@@ -91,7 +88,6 @@ service /transport on transportListener {
         }
     }
 
-    // Add a new trip
     resource function post addTrip(http:Request req) returns http:Response|error {
         json jsonPayload = check req.getJsonPayload();
         TripRequest body = check jsonPayload.cloneWithType(TripRequest);
@@ -122,12 +118,11 @@ service /transport on transportListener {
         }
     }
 
-    // Publish a schedule update via Kafka
     resource function post publishSchedule(http:Request req) returns http:Response|error {
         json jsonPayload = check req.getJsonPayload();
         ScheduleUpdateRequest body = check jsonPayload.cloneWithType(ScheduleUpdateRequest);
 
-        // Store disruption in database (optional)
+        // Store disruption in database 
         int routeId = body.route_id ?: 0;
         string description = body.description ?: "";
         string startTime = body.start_time ?: "";

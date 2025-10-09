@@ -31,7 +31,6 @@ final k:Consumer ticketConsumer = check new(BALLERINA_KAFKA_BOOTSTRAP, {
 
 listener http:Listener paymentListener = new(8084);
 
-// Record types
 type TicketRequest record {
     int ticketID;
     int passengerID;
@@ -56,7 +55,6 @@ function init() returns error? {
     io:println("Payment Service starting...");
     io:println("Listening for ticket requests on Kafka topic: ticket.requests");
 
-    // Start consuming ticket requests in a worker
     worker TicketProcessor {
         error? result = consumeTicketRequests();
         if result is error {

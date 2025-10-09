@@ -4,7 +4,6 @@ import ballerina/io;
 import ballerinax/mysql;
 import ballerinax/kafka as k;
 
-// Config
 configurable string HOST = "mysql";
 configurable string DATABASE = "ticketingdb";
 configurable string USER = "root";
@@ -13,7 +12,6 @@ configurable int PORT = 3306;
 
 configurable string BALLERINA_KAFKA_BOOTSTRAP = "kafka:9092";
 
-// DB client
 final mysql:Client db = check new(
     host = HOST,
     user = USER,
@@ -21,7 +19,7 @@ final mysql:Client db = check new(
     port = PORT,
     database = DATABASE
 );
-// Kafka consumers (use BytesConsumerRecord because producers send bytes)
+
 final k:Consumer scheduleConsumer = check new(BALLERINA_KAFKA_BOOTSTRAP, {
     groupId: "notification-schedule-group",
     topics: ["schedule.updates"]
@@ -32,10 +30,8 @@ final k:Consumer ticketConsumer = check new(BALLERINA_KAFKA_BOOTSTRAP, {
     topics: ["tickets.confirmed"]
 });
 
-// HTTP listener
 listener http:Listener notificationListener = new(8085);
 
-// Types (module level)
 type NotificationRecord record {
     int? notificationID;
     int passengerID;
@@ -85,10 +81,8 @@ function init() returns error? {
     }
 }
 
-// Consume schedule updates from Kafka
 function consumeScheduleUpdates() returns error? {
     while true {
-        // explicit typed poll (avoids inference issues)
         k:BytesConsumerRecord[]|k:Error records = scheduleConsumer->poll(1000.0);
         if records is k:Error {
             io:println("⚠️ Kafka poll error (schedule): ", records.message());
@@ -100,13 +94,10 @@ function consumeScheduleUpdates() returns error? {
         }
 
         foreach k:BytesConsumerRecord rec in records {
-            // decode bytes -> string
             byte[] val = rec.value;
             string payloadStr = check string:fromBytes(val);
 
-            // ---------------------------
-            // <-- use string.fromJsonString() here
-            // ---------------------------
+            
             var jsonParseRes = payloadStr.fromJsonString();
             if jsonParseRes is error {
                 io:println("⚠️ Failed to parse schedule JSON: ", jsonParseRes.message());
@@ -122,7 +113,7 @@ function consumeScheduleUpdates() returns error? {
             }
             map<json> m = payloadJson;
 
-            // Extract route_id (optional)
+            
             int routeId = 0;
             if m["route_id"] is int {
                 routeId = <int> m["route_id"];
@@ -131,7 +122,6 @@ function consumeScheduleUpdates() returns error? {
                 if conv is int {
                     routeId = conv;
                 } else {
-                    // leave as 0 (no route filter)
                 }
             }
 
@@ -167,7 +157,6 @@ function consumeScheduleUpdates() returns error? {
     }
 }
 
-// Consume ticket.confirmed events from Kafka
 function consumeTicketConfirmations() returns error? {
     while true {
         k:BytesConsumerRecord[]|k:Error records = ticketConsumer->poll(1000.0);
@@ -191,7 +180,6 @@ function consumeTicketConfirmations() returns error? {
             continue;
         }
         json payloadJson = jsonParseRes;
-        // ---------------------------------------------------------------------------
 
         if !(payloadJson is map<json>) {
             io:println("⚠️ Unexpected ticket payload shape, skipping");
@@ -235,7 +223,6 @@ function consumeTicketConfirmations() returns error? {
         }
     }
 }
-// Create notification helper
 function createNotification(int passengerID, string message) returns error? {
     sql:ParameterizedQuery q = `
         INSERT INTO Notification (passengerID, message)
@@ -248,10 +235,8 @@ function createNotification(int passengerID, string message) returns error? {
     return;
 }
 
-// HTTP endpoints
 service /notification on notificationListener {
 
-    // Get notifications for a passenger
     resource function get notifications/[int passengerID]() returns http:Response|error {
         sql:ParameterizedQuery q = `
             SELECT notificationID, passengerID, message, dateCreated
@@ -260,7 +245,6 @@ service /notification on notificationListener {
             ORDER BY dateCreated DESC
         `;
 
-        // Query returns generic records, map to NotificationRecord
         stream<record { int notificationID; int passengerID; string message; string dateCreated; }, sql:Error?> s =
             check db->query(q);
 
@@ -297,7 +281,6 @@ service /notification on notificationListener {
     
     map<json> body = payload;
 
-    // Extract and validate passengerID
     if !(body["passengerID"] is int) {
         if body["passengerID"] is string {
             int|error conv = int:fromString(<string>body["passengerID"]);
@@ -315,7 +298,6 @@ service /notification on notificationListener {
     
     int pid = body["passengerID"] is int ? <int>body["passengerID"] : check int:fromString(<string>body["passengerID"]);
 
-    // Extract and validate message
     if !(body["message"] is string) {
         res.setJsonPayload({ message: "message is required and must be a string" });
         res.statusCode = 400;
@@ -324,7 +306,6 @@ service /notification on notificationListener {
     
     string msg = <string>body["message"];
 
-    // Insert notification directly
     sql:ParameterizedQuery insertQ = `INSERT INTO Notification (passengerID, message) VALUES (${pid}, ${msg})`;
     
     _ = check db->execute(insertQ);
@@ -335,7 +316,6 @@ service /notification on notificationListener {
     return res;
 }
 
-    // Health check
     resource function get health() returns json {
         return { status: "Notification Service running" };
     }

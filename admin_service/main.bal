@@ -23,7 +23,6 @@ final k:Producer scheduleProducer = check new(BALLERINA_KAFKA_BOOTSTRAP);
 
 listener http:Listener adminListener = new(8086);
 
-// Record types
 type Admin record {
     int? adminID;
     string firstName;
@@ -89,7 +88,7 @@ type TripStatusUpdate record {
 
 service /admin on adminListener {
     
-    // Admin login
+    
     resource function post login(http:Request req) returns http:Response|error {
         json jsonPayload = check req.getJsonPayload();
         LoginRequest body = check jsonPayload.cloneWithType(LoginRequest);
@@ -122,7 +121,7 @@ service /admin on adminListener {
         return response;
     }
     
-    // Create route
+    
     resource function post routes(http:Request req) returns http:Response|error {
         json jsonPayload = check req.getJsonPayload();
         RouteRequest body = check jsonPayload.cloneWithType(RouteRequest);
@@ -155,7 +154,7 @@ service /admin on adminListener {
         return response;
     }
     
-    // Get all routes
+    
     resource function get routes() returns http:Response|error {
         sql:ParameterizedQuery q = `SELECT * FROM Route`;
         
@@ -175,7 +174,7 @@ service /admin on adminListener {
         return response;
     }
     
-    // Update route
+    
     resource function put routes/[int routeID](http:Request req) returns http:Response|error {
         json jsonPayload = check req.getJsonPayload();
         RouteRequest body = check jsonPayload.cloneWithType(RouteRequest);
@@ -203,7 +202,7 @@ service /admin on adminListener {
         return response;
     }
     
-    // Delete route
+    
     resource function delete routes/[int routeID]() returns http:Response|error {
         sql:ParameterizedQuery q = `DELETE FROM Route WHERE routeID = ${routeID}`;
         sql:ExecutionResult result = check db->execute(q);
@@ -223,7 +222,7 @@ service /admin on adminListener {
     }
     
 
-  // Create trip
+  
     resource function post trips(http:Request req) returns http:Response|error {
         json jsonPayload = check req.getJsonPayload();
         TripRequest body = check jsonPayload.cloneWithType(TripRequest);
@@ -255,7 +254,7 @@ service /admin on adminListener {
         return response;
     }
     
-    // Get all trips
+    
     resource function get trips() returns http:Response|error {
         sql:ParameterizedQuery q = `
             SELECT t.*, r.routeName 
@@ -278,7 +277,7 @@ service /admin on adminListener {
         return response;
     }
     
-    // Update trip status
+    
     resource function put trips/[int tripID](http:Request req) returns http:Response|error {
         json jsonPayload = check req.getJsonPayload();
         
@@ -307,12 +306,12 @@ service /admin on adminListener {
         return response;
     }
 
-    // Publish service disruption
+   
     resource function post disruptions(http:Request req) returns http:Response|error {
         json jsonPayload = check req.getJsonPayload();
         DisruptionRequest body = check jsonPayload.cloneWithType(DisruptionRequest);
         
-        // Publish to Kafka
+        
         json event = {
             route_id: body.route_id,
             description: body.description,
@@ -344,7 +343,7 @@ service /admin on adminListener {
         return response;
     }
     
-    // Get ticket sales report
+    
     resource function get reports/ticketsales() returns http:Response|error {
         sql:ParameterizedQuery q = `
             SELECT 
@@ -377,7 +376,6 @@ service /admin on adminListener {
         return response;
     }
     
-    // Health check
     resource function get health() returns json {
         return { status: "Admin Service running" };
     }

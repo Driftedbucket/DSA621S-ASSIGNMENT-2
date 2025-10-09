@@ -21,7 +21,6 @@ final mysql:Client db = check new(
 );
 final k:Producer ticketProducer = check new(BALLERINA_KAFKA_BOOTSTRAP);
 
-// Consumer for payments.processed
 final k:Consumer paymentConsumer = check new(BALLERINA_KAFKA_BOOTSTRAP, {
     groupId: "ticketing-group",
     topics: ["payments.processed"]
@@ -29,7 +28,6 @@ final k:Consumer paymentConsumer = check new(BALLERINA_KAFKA_BOOTSTRAP, {
 
 listener http:Listener ticketListener = new(8083);
 
-// Simple ticket record used locally
 type TicketRecord record {
     int ticketID;
     int passengerID;
@@ -44,12 +42,10 @@ type PaymentEvent record {
     decimal? amount;
     string? paymentMethod;
 };
-// Initialize Kafka consumer listener
 function init() returns error? {
     io:println("🎫 Ticketing Service starting...");
     io:println("📡 Listening for payment events on Kafka topic: payments.processed");
     
-    // Start consuming payment events in a separate worker
     worker PaymentProcessor {
         error? result = consumePaymentEvents();
         if result is error {
@@ -58,10 +54,8 @@ function init() returns error? {
     }
 }
 
-// Consume payment events from Kafka
 function consumePaymentEvents() returns error? {
     while true {
-        // Fixed: Use the correct return type from poll
         k:BytesConsumerRecord[]|k:Error records = paymentConsumer->poll(1000.0);
         
         if records is k:Error {
@@ -74,11 +68,9 @@ function consumePaymentEvents() returns error? {
         }
 
         foreach k:BytesConsumerRecord rec in records {
-            // Extract value field (byte[])
             byte[] val = rec.value;
             string payloadStr = check string:fromBytes(val);
 
-            // Parse JSON safely - Fixed: proper json parsing
             json|error jsonRes = payloadStr.fromJsonString();
             if jsonRes is error {
                 io:println("⚠ Failed to parse message JSON: ", jsonRes.message());
@@ -86,7 +78,6 @@ function consumePaymentEvents() returns error? {
             }
             json payloadJson = jsonRes;
 
-            // Validate/convert to the typed record
             PaymentEvent|error evtRes = payloadJson.cloneWithType(PaymentEvent);
             if evtRes is error {
                 io:println("⚠ Invalid payment event shape: ", evtRes.message());
@@ -136,7 +127,7 @@ function consumePaymentEvents() returns error? {
     }
 }
 function getCurrentTimestamp() returns string {
-    return "2025-10-05T12:00:00Z"; // Placeholder - use ballerina/time for actual timestamp
+    return "2025-10-09T12:00:00Z"; 
 }
 
 service /ticketing on ticketListener {

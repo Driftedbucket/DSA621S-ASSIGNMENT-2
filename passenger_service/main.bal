@@ -3,14 +3,12 @@ import ballerina/sql;
 // import ballerina/io;
 import ballerinax/mysql;
 
-// Configuration
 configurable string USER = "root";
 configurable string PASSWORD = "muddysituation";
 configurable string HOST = "mysql";
 configurable int PORT = 3306;
 configurable string DATABASE = "ticketingdb";
 
-// Database client
 final mysql:Client db = check new(
     host = HOST,
     user = USER,
@@ -19,7 +17,6 @@ final mysql:Client db = check new(
     database = DATABASE
 );
 
-// Data types
 type Passenger record {
     int? passengerID;
     string firstName;
@@ -51,12 +48,10 @@ type CountRecord record {
     int count;
 };
 
-// HTTP Listener
 listener http:Listener passengerListener = new(8081);
 
 service /passenger on passengerListener {
 
-    // Register a new passenger
     resource function post register(http:Request req) returns http:Response|error {
         json jsonPayload = check req.getJsonPayload();
         RegisterRequest body = check jsonPayload.cloneWithType(RegisterRequest);
@@ -85,7 +80,6 @@ service /passenger on passengerListener {
         return response;
     }
 
-    // Login passenger
     resource function post login(http:Request req) returns http:Response|error {
         json jsonPayload = check req.getJsonPayload();
         LoginRequest body = check jsonPayload.cloneWithType(LoginRequest);
@@ -117,7 +111,6 @@ service /passenger on passengerListener {
         return response;
     }
 
-    // View tickets for a passenger
 
 resource function get tickets/[int passengerID]() returns http:Response|error {
     sql:ParameterizedQuery q = `
@@ -128,12 +121,10 @@ resource function get tickets/[int passengerID]() returns http:Response|error {
         WHERE t.passengerID = ${passengerID}
     `;
 
-    // Execute the query and collect results
     stream<Ticket, error?> resultStream = check db->query(q);
     Ticket[] tickets = check from Ticket ticket in resultStream select ticket;
     check resultStream.close();
 
-    // Prepare HTTP response
     http:Response response = new;
 
     if tickets.length() > 0 {
