@@ -6,15 +6,21 @@ import ballerinax/kafka as k;
 
 configurable string USER = "root";
 configurable string PASSWORD = "muddysituation";
-configurable string HOST = ?;
+configurable string HOST = "mysql";
 configurable int PORT = 3306;
 configurable string DATABASE = "ticketingdb";
 
-configurable string BALLERINA_KAFKA_BOOTSTRAP = ?;
+configurable string BALLERINA_KAFKA_BOOTSTRAP = "kafka:9092";
 
 final k:Producer scheduleProducer = check new(BALLERINA_KAFKA_BOOTSTRAP);
 
-final mysql:Client db = check new(HOST, DATABASE, USER, PASSWORD, PORT);
+final mysql:Client db = check new(
+    host = HOST,
+    user = USER,
+    password = PASSWORD,
+    port = PORT,
+    database = DATABASE
+);
 
 // Data types
 type Route record {

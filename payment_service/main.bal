@@ -5,16 +5,21 @@ import ballerinax/mysql;
 import ballerinax/kafka as k;
 import ballerina/time;
 
-configurable string HOST = ?;
+configurable string HOST = "mysql";
 configurable string DATABASE = "ticketingdb";
 configurable string USER = "root";
 configurable string PASSWORD = "muddysituation";
 configurable int PORT = 3306;
 
-configurable string BALLERINA_KAFKA_BOOTSTRAP = ?;
+configurable string BALLERINA_KAFKA_BOOTSTRAP = "kafka:9092";
 
-final mysql:Client db = check new(HOST, DATABASE, USER, PASSWORD, PORT);
-
+final mysql:Client db = check new(
+    host = HOST,
+    user = USER,
+    password = PASSWORD,
+    port = PORT,
+    database = DATABASE
+);
 // Kafka producer for payments.processed events
 final k:Producer paymentProducer = check new(BALLERINA_KAFKA_BOOTSTRAP);
 

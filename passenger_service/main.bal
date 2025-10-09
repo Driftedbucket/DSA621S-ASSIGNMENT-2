@@ -6,7 +6,7 @@ import ballerinax/mysql;
 // Configuration
 configurable string USER = "root";
 configurable string PASSWORD = "muddysituation";
-configurable string HOST = ?;
+configurable string HOST = "mysql";
 configurable int PORT = 3306;
 configurable string DATABASE = "ticketingdb";
 

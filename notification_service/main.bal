@@ -5,17 +5,22 @@ import ballerinax/mysql;
 import ballerinax/kafka as k;
 
 // Config
-configurable string HOST = ?;
+configurable string HOST = "mysql";
 configurable string DATABASE = "ticketingdb";
 configurable string USER = "root";
 configurable string PASSWORD = "muddysituation";
 configurable int PORT = 3306;
 
-configurable string BALLERINA_KAFKA_BOOTSTRAP = ?;
+configurable string BALLERINA_KAFKA_BOOTSTRAP = "kafka:9092";
 
 // DB client
-final mysql:Client db = check new(HOST, DATABASE, USER, PASSWORD, PORT);
-
+final mysql:Client db = check new(
+    host = HOST,
+    user = USER,
+    password = PASSWORD,
+    port = PORT,
+    database = DATABASE
+);
 // Kafka consumers (use BytesConsumerRecord because producers send bytes)
 final k:Consumer scheduleConsumer = check new(BALLERINA_KAFKA_BOOTSTRAP, {
     groupId: "notification-schedule-group",
