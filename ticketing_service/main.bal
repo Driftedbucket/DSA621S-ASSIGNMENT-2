@@ -10,13 +10,13 @@ configurable string USER = "root";
 configurable string PASSWORD = "muddysituation";
 configurable int PORT = 3306;
 
-configurable string KAFKA_BOOTSTRAP = ?;
+configurable string BALLERINA_KAFKA_BOOTSTRAP = ?;
 
 final mysql:Client db = check new(HOST, DATABASE, USER, PASSWORD, PORT);
-final k:Producer ticketProducer = check new(KAFKA_BOOTSTRAP);
+final k:Producer ticketProducer = check new(BALLERINA_KAFKA_BOOTSTRAP);
 
 // Consumer for payments.processed
-final k:Consumer paymentConsumer = check new(KAFKA_BOOTSTRAP, {
+final k:Consumer paymentConsumer = check new(BALLERINA_KAFKA_BOOTSTRAP, {
     groupId: "ticketing-group",
     topics: ["payments.processed"]
 });

@@ -11,18 +11,18 @@ configurable string USER = "root";
 configurable string PASSWORD = "muddysituation";
 configurable int PORT = 3306;
 
-configurable string KAFKA_BOOTSTRAP = ?;
+configurable string BALLERINA_KAFKA_BOOTSTRAP = ?;
 
 // DB client
 final mysql:Client db = check new(HOST, DATABASE, USER, PASSWORD, PORT);
 
 // Kafka consumers (use BytesConsumerRecord because producers send bytes)
-final k:Consumer scheduleConsumer = check new(KAFKA_BOOTSTRAP, {
+final k:Consumer scheduleConsumer = check new(BALLERINA_KAFKA_BOOTSTRAP, {
     groupId: "notification-schedule-group",
     topics: ["schedule.updates"]
 });
 
-final k:Consumer ticketConsumer = check new(KAFKA_BOOTSTRAP, {
+final k:Consumer ticketConsumer = check new(BALLERINA_KAFKA_BOOTSTRAP, {
     groupId: "notification-ticket-group",
     topics: ["tickets.confirmed"]
 });

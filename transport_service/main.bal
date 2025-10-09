@@ -10,9 +10,9 @@ configurable string HOST = ?;
 configurable int PORT = 3306;
 configurable string DATABASE = "ticketingdb";
 
-configurable string KAFKA_BOOTSTRAP = ?;
+configurable string BALLERINA_KAFKA_BOOTSTRAP = ?;
 
-final k:Producer scheduleProducer = check new(KAFKA_BOOTSTRAP);
+final k:Producer scheduleProducer = check new(BALLERINA_KAFKA_BOOTSTRAP);
 
 final mysql:Client db = check new(HOST, DATABASE, USER, PASSWORD, PORT);
 

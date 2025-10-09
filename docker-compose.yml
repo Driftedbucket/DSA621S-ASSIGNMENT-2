@@ -99,7 +99,7 @@ services:
       USER: root
       PASSWORD: muddysituation
       PORT: 3306
-      KAFKA_BOOTSTRAP: kafka:9092
+      BALLERINA_KAFKA_BOOTSTRAP: kafka:9092
     networks:
       - ticketing-network
     restart: on-failure
@@ -122,7 +122,7 @@ services:
       USER: root
       PASSWORD: muddysituation
       PORT: 3306
-      KAFKA_BOOTSTRAP: kafka:9092
+      BALLERINA_KAFKA_BOOTSTRAP: kafka:9092
     networks:
       - ticketing-network
     restart: on-failure
@@ -145,7 +145,7 @@ services:
       USER: root
       PASSWORD: muddysituation
       PORT: 3306
-      KAFKA_BOOTSTRAP: kafka:9092
+      BALLERINA_KAFKA_BOOTSTRAP: kafka:9092
     networks:
       - ticketing-network
     restart: on-failure
@@ -168,7 +168,7 @@ services:
       USER: root
       PASSWORD: muddysituation
       PORT: 3306
-      KAFKA_BOOTSTRAP: kafka:9092
+      BALLERINA_KAFKA_BOOTSTRAP: kafka:9092
     networks:
       - ticketing-network
     restart: on-failure
@@ -191,7 +191,7 @@ services:
       USER: root
       PASSWORD: muddysituation
       PORT: 3306
-      KAFKA_BOOTSTRAP: kafka:9092
+      BALLERINA_KAFKA_BOOTSTRAP: kafka:9092
     networks:
       - ticketing-network
     restart: on-failure
